@@ -27,6 +27,7 @@ const int TPR = 3000;
 
 // Wheel radius [m]
 const double RHO = 0.0625;
+double ell = 0.2775;
 
 // Counter to keep track of encoder ticks [integer]
 volatile long R_encoder_ticks = 0;
@@ -48,9 +49,16 @@ const int T = 100;
 long t_now = 0;
 long t_last = 0;
 
-double v_desired = .5;
+double v_desired = .35;
 double KP = 400;
 
+double KI = 25;
+double L_int_prev = 0;
+double R_int_prev = 0;
+
+double KO = 10;
+double t_desired = 20;
+double t_v_desired = 1;
 // This function is called when SIGNAL_A goes HIGH
 void R_decodeEncoderTicks()
 {
@@ -80,30 +88,35 @@ void L_decodeEncoderTicks()
   }
 }
 
-double compute_vehicle_speed(double v_L, double v_R)
+double compute_vehicle_rate(double v_L, double v_R)
 {
-  double v;
-  v = 0.5 * (v_L + v_R);
-  return v;
+  double omega;
+  omega = 1.0 / ell * (v_L - v_R);
+  return omega;
 }
 
-
-double R_e_now(double v_R, double v_desired)
+double e_now(double v, double v_desired)
 {
-  double error = v_desired - v_R;
+  double error = v_desired - v;
   return error;
 }
 
-double L_e_now(double v_L, double v_desired)
+double e_int(double v_desired, double v, double prev)
 {
-  double error = v_desired - v_L;
-  return error;
+  double integral = 0;
+  integral = e_now(v, v_desired);
+  integral += prev;
+  return integral;
 }
 
-float R_PI_controller(double e_now, double k_P)
+float PI_controller(double e_now, double k_P, double e_int, double k_I)
 {
   float u;
-  u = (float)(k_P * e_now);
+  u = (float)(k_P * e_now + k_I * e_int);
+  if (u == 255 || u == (-255))
+  {
+    u = (k_P * e_now);
+  }
   if (u > 255)
   {
     u = 255;
@@ -116,10 +129,16 @@ float R_PI_controller(double e_now, double k_P)
   return u;
 }
 
-float L_PI_controller(double e_now, double k_P)
+double e_turn(double omega, double omega_desired)
+{
+  double error = omega_desired - omega;
+  return error;
+}
+
+float P_turn(double e_turn, double K_turn)
 {
   float u;
-  u = (float)(k_P * e_now);
+  u = u = (float)(K_turn * e_turn);
   if (u > 255)
   {
     u = 255;
@@ -131,7 +150,6 @@ float L_PI_controller(double e_now, double k_P)
 
   return u;
 }
-
 void setup()
 {
   // Open the serial port at 9600 bps
@@ -191,8 +209,18 @@ void loop()
 
   // Set the wheel motor PWM command [0-255]
 
-  L_u = (int)L_PI_controller(L_e_now(v_L, v_desired), KP);
-  R_u = (int)R_PI_controller(R_e_now(v_R, v_desired), KP);
+  if (t_desired != 0)
+  {
+    L_u = (int)(P_turn(e_turn(compute_vehicle_rate(v_L, v_R), t_desired), KO));
+    R_u = (int)(-1 * P_turn(e_turn(compute_vehicle_rate(v_L, v_R), t_desired), KO));
+  }
+  else {
+    L_u = (int)(PI_controller(e_now(v_L, v_desired), KP, e_int(v_desired, v_L, L_int_prev), KI) + P_turn(e_turn(compute_vehicle_rate(v_L, v_R), t_desired), KO));
+    R_u = (int)(PI_controller(e_now(v_R, v_desired), KP, e_int(v_desired, v_R, R_int_prev), KI) - P_turn(e_turn(compute_vehicle_rate(v_L, v_R), t_desired), KO));
+  }
+
+  L_int_prev = e_int(v_desired, v_L, L_int_prev);
+  R_int_prev = e_int(v_desired, v_R, R_int_prev);
 
   // Select a direction
 
@@ -218,27 +246,16 @@ void loop()
     digitalWrite(I3, LOW);
     digitalWrite(I4, HIGH);
   }
-  Serial.print("R speed: ");
-  Serial.print(v_R);
-  Serial.print(" m/s");
+
+
+  Serial.print("Vehicle Rate: ");
+  Serial.print(compute_vehicle_rate(v_L, v_R));
+  Serial.print(" rad/s");
   Serial.print("\t");
-  Serial.print("R u val: ");
-  Serial.print(R_u);
-  Serial.print("\t");
-  Serial.print("R error: ");
-  Serial.print(R_e_now(v_R, v_desired));
+  Serial.print("Rate Adj: ");
+  Serial.print(P_turn(e_turn(compute_vehicle_rate(v_L, v_R), t_desired), KO));
   Serial.print("\n");
 
-  Serial.print("L speed: ");
-  Serial.print(v_L);
-  Serial.print(" m/s");
-  Serial.print("\t");
-  Serial.print("L u val: ");
-  Serial.print(L_u);
-  Serial.print("\t");
-  Serial.print("L error: ");
-  Serial.print(L_e_now(v_L, v_desired));
-  Serial.print("\n");
 
   // PWM command to the motor driver
   analogWrite(EA, R_u);
