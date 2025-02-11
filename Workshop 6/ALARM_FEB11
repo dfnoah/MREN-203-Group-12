@@ -1,0 +1,124 @@
+ // Print these values to the serial window
+    Serial.print("Accelerometer sample rate: ");
+    Serial.println(a_f);
+    Serial.print("Gyroscope sample rate: ");
+    Serial.println(g_f);
+}
+
+void loop()
+{
+    // Timing in the loop is controlled by the IMU reporting when
+    // it is ready for another measurement.
+    // The accelerometer and gyroscope output at the same rate and
+    // will give us their measurements at a steady frequency.
+
+    // Read from the accelerometer
+    if (IMU.accelerationAvailable())
+    {
+        IMU.readAcceleration(a_x, a_y, a_z);
+
+        //calibration values
+        a_x -= 0.01;
+        a_y += 0.03;
+        a_z -= 1.02;
+
+        //turn on alarm if difference is too high
+        if (abs(a_x - a_x_prev) > x_d_s){
+          ;//turn on alarm 
+        }
+        if (abs(a_y - a_y_prev) > y_d_s){
+          ;//turn on alarm
+        }
+        if (abs(a_z - a_z_prev) > z_d_s){
+          ;//turn on alarm
+        }
+        //or if single sample is too high
+        //turn on alarm if difference is too high
+        if (abs(a_x) > x_s){
+          ;//turn on alarm 
+        }
+        if (abs(a_y) > y_s){
+          ;//turn on alarm
+        }
+        if (abs(a_z) > z_s){
+          ;//turn on alarm
+        }
+        
+
+        /// Print the accelerometer measurements to the Serial Monitor
+        /*Serial.print("x acceleration: ");
+        Serial.print(a_x);
+        Serial.print("\t");
+        Serial.print("y acceleration: ");
+        Serial.print(a_y);
+        Serial.print("\t");
+        Serial.print("z acceleration: ");
+        Serial.print(a_z);
+        Serial.print(" g\t\t");
+        */
+        Serial.print(a_x - a_x_prev);
+        Serial.print("\t");
+        Serial.print("y acceleration: ");
+        Serial.print(a_y - a_y_prev);
+        Serial.print("\t");
+        Serial.print("z acceleration: ");
+        Serial.print(a_z - a_z_prev);
+        Serial.print(" g\t\t");
+
+        //remember current value 
+        a_x_prev = a_x;
+        a_y_prev = a_y;
+        a_z_prev = a_z;
+    }
+
+    // Read from the gyroscope
+    if (IMU.gyroscopeAvailable())
+    {
+        IMU.readGyroscope(omega_x, omega_y, omega_z);
+
+        //calibration values
+        omega_x += 0.18;
+        omega_y += 0;
+        omega_z += 0.18;
+
+        //turn on alarm if difference is too high
+        if (abs(omega_x - omega_x_prev) > omega_x_d_s){
+          ;//turn on alarm 
+        }
+        if (abs(omega_y - omega_y_prev) > omega_y_d_s){
+          ;//turn on alarm
+        }
+        if (abs(omega_z - omega_z_prev) > omega_z_d_s){
+          ;//turn on alarm
+        }
+        //or if sample is too high
+        //turn on alarm if difference is too high
+        if (abs(omega_x) > omega_x_s){
+          ;//turn on alarm 
+        }
+        if (abs(omega_y) > omega_y_s){
+          ;//turn on alarm
+        }
+        if (abs(omega_z) > omega_z_s){
+          ;//turn on alarm
+        }
+
+        // Print the gyroscope measurements to the Serial Monitor
+        //Serial.print("x omega: ");
+        Serial.print(omega_x);
+        Serial.print("\t");
+        //Serial.print("y omega: ");
+        Serial.print(omega_y);
+        Serial.print("\t");
+        //Serial.print("z omega: ");
+        Serial.print(omega_z);
+        Serial.print(" deg/s\n");
+
+        //remember current values
+        omega_x_prev = omega_x;
+        omega_y_prev = omega_y;
+        omega_z_prev = omega_z;
+    }
+
+    delay(500);
+}
