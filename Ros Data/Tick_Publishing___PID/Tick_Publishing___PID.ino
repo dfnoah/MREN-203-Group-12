@@ -131,10 +131,17 @@ void loop() {
     L_u = (int)(PI_controller(e_now(v_L, compute_desired_speed(t_desired, v_desired, 'L')), KP, e_int(compute_desired_speed(t_desired, v_desired, 'L'), v_L, L_int_prev), KI));
     R_u = (int)(PI_controller(e_now(v_R, compute_desired_speed(t_desired, v_desired, 'R')), KP, e_int(compute_desired_speed(t_desired, v_desired, 'R'), v_R, R_int_prev), KI));
 
+    if (t_desired == 0 && v_desired == 0){
+      L_int_prev = 0;
+      R_int_prev = 0;
+    }
+    else{
+      L_int_prev = e_int(v_desired, v_L, L_int_prev);
+      R_int_prev = e_int(v_desired, v_R, R_int_prev);
+    }
              
 
-    L_int_prev = e_int(v_desired, v_L, L_int_prev);
-    R_int_prev = e_int(v_desired, v_R, R_int_prev);
+    
 
 
     // Set motor directions
