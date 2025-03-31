@@ -48,16 +48,16 @@ const int T = 100;
 // Counters for milliseconds during interval
 long t_now = 0;
 long t_last = 0;
-
+//desired speed and proportional constant
 double v_desired = .35;
 double KP = 400;
 
 double KI = 25;
 double L_int_prev = 0;
 double R_int_prev = 0;
-
+//turning contstant
 double KO = 10;
-double t_desired = 20;
+double t_desired = 1;
 double t_v_desired = 1;
 // This function is called when SIGNAL_A goes HIGH
 void R_decodeEncoderTicks()
@@ -91,16 +91,16 @@ void L_decodeEncoderTicks()
 double compute_vehicle_rate(double v_L, double v_R)
 {
   double omega;
-  omega = 1.0 / ell * (v_L - v_R);
+  omega = 1.0 / ell * (v_L - v_R);  //defines positive rate as right turn
   return omega;
 }
-
+//linear speed error
 double e_now(double v, double v_desired)
 {
   double error = v_desired - v;
   return error;
 }
-
+//integral error for linear speed
 double e_int(double v_desired, double v, double prev)
 {
   double integral = 0;
@@ -108,7 +108,7 @@ double e_int(double v_desired, double v, double prev)
   integral += prev;
   return integral;
 }
-
+//PI controller for linear speed
 float PI_controller(double e_now, double k_P, double e_int, double k_I)
 {
   float u;
@@ -128,27 +128,27 @@ float PI_controller(double e_now, double k_P, double e_int, double k_I)
 
   return u;
 }
-
+//turning rate error
 double e_turn(double omega, double omega_desired)
 {
-  double error = omega_desired - omega;
+  double error = omega_desired - omega;  //for desired = 1, error = 1
   return error;
 }
-
-float P_turn(double e_turn, double K_turn)
-{
-  float u;
-  u = u = (float)(K_turn * e_turn);
-  if (u > 255)
-  {
-    u = 255;
+//P controller for turning rate (CALCULATE OFFSET U)
+float P_turn(double e_turn, double K_turn)  //for error = 1 (TURN HARDER, BIGGER OFFSET)
+{                                           //for error = -1 (BRING OFFSET DOWN)
+  float u_offset;                           //no error, keep offset
+  u_offset = (float)(K_turn * e_turn);   
+  if (u_offset > 255)                    
+  {                                     
+    u_offset = 255;
   }
-  else if (u < -255)
+  else if (u_offset < -255)
   {
-    u = -255;
+    u_offset = -255;
   }
 
-  return u;
+  return u_offset;
 }
 void setup()
 {
@@ -209,14 +209,18 @@ void loop()
 
   // Set the wheel motor PWM command [0-255]
 
-  if (t_desired != 0)
+  if (t_desired > 0) 
   {
-    L_u = (int)(P_turn(e_turn(compute_vehicle_rate(v_L, v_R), t_desired), KO));
-    R_u = (int)(-1 * P_turn(e_turn(compute_vehicle_rate(v_L, v_R), t_desired), KO));
+    L_u = (int)(PI_controller(e_now(v_L, v_desired), KP, e_int(v_desired, v_L, L_int_prev), KI));
+    R_u = (int)(L_u - P_turn(e_turn(compute_vehicle_rate(v_L,v_R),t_desired),KO));
+  }
+  else if (t_desired < 0){
+    R_u = (int)(PI_controller(e_now(v_L, v_desired), KP, e_int(v_desired, v_L, L_int_prev), KI));
+    L_u = (int)(R_u - P_turn(e_turn(compute_vehicle_rate(v_L,v_R),t_desired),KO));
   }
   else {
-    L_u = (int)(PI_controller(e_now(v_L, v_desired), KP, e_int(v_desired, v_L, L_int_prev), KI) + P_turn(e_turn(compute_vehicle_rate(v_L, v_R), t_desired), KO));
-    R_u = (int)(PI_controller(e_now(v_R, v_desired), KP, e_int(v_desired, v_R, R_int_prev), KI) - P_turn(e_turn(compute_vehicle_rate(v_L, v_R), t_desired), KO));
+    L_u = (int)(PI_controller(e_now(v_L, v_desired), KP, e_int(v_desired, v_L, L_int_prev), KI));
+    R_u = (int)(PI_controller(e_now(v_R, v_desired), KP, e_int(v_desired, v_R, R_int_prev), KI));
   }
 
   L_int_prev = e_int(v_desired, v_L, L_int_prev);
