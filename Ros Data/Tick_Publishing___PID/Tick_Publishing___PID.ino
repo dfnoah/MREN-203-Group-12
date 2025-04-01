@@ -152,8 +152,8 @@ void loop() {
       R_int_prev = 0;
     }
     else{
-      L_int_prev = e_int(v_desired, v_L, L_int_prev);
-      R_int_prev = e_int(v_desired, v_R, R_int_prev);
+      L_int_prev = e_int(compute_desired_speed(t_desired, v_desired, 'L'), v_L, L_int_prev);
+      R_int_prev = e_int(compute_desired_speed(t_desired, v_desired, 'R'), v_R, R_int_prev);
     }
              
 
