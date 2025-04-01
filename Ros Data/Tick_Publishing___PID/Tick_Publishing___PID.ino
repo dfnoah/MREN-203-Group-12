@@ -77,10 +77,10 @@ double compute_desired_speed(double omega, double v_in, char dir) {
   else if (dir == 'R' && omega < 0){
     v_out = v_in;
   }
-  else if (dir == 'L'){
+  else if (dir == 'L' && omega > 0){
     v_out = v_in + omega*0.2775; //omega is negative here 
   }
-  else if (dir == 'R'){
+  else if (dir == 'R' && omega < 0){
     v_out = v_in - omega*0.2775; //omega is positive
   }
   return v_out;
