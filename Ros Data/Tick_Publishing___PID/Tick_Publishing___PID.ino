@@ -78,10 +78,10 @@ double compute_desired_speed(double omega, double v_in, char dir) {
     v_out = v_in;
   }
   else if (dir == 'L' && omega > 0){
-    v_out = v_in + omega*0.2775; //omega is negative here 
+    v_out = v_in + omega*0.2775*100; //omega is negative here 
   }
   else if (dir == 'R' && omega < 0){
-    v_out = v_in - omega*0.2775; //omega is positive
+    v_out = v_in - omega*0.2775*100; //omega is positive
   }
   return v_out;
 
@@ -92,7 +92,14 @@ double e_now(double v, double v_desired) {
 }
 
 double e_int(double v_desired, double v, double prev) {
-    return e_now(v, v_desired) + prev;
+    float e_sum = e_now(v, v_desired) + prev;
+    if(e_sum > 50){
+      e_sum = 50;
+    }
+    if(e_sum < 50){
+      e_sum = -50;
+    }
+    return e_sum;
 }
 
 float PI_controller(double e_now, double k_P, double e_int, double k_I) {
