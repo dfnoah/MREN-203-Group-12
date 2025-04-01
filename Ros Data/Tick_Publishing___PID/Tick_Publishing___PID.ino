@@ -67,8 +67,24 @@ double compute_vehicle_rate(double v_L, double v_R) {
 }
 
 double compute_desired_speed(double omega, double v_in, char dir) {
-    if (omega == 0) return v_in;
-    return (dir == 'L') ? v_in + omega * ell : v_in - omega * ell;
+  float v_out;
+  if (omega == 0){
+    v_out = v_in;
+  }
+  else if (dir == 'L' && omega > 0){
+    v_out = v_in;
+  }
+  else if (dir == 'R' && omega < 0){
+    v_out = v_in;
+  }
+  else if (dir == 'L'){
+    v_out = v_in + omega*0.2775; //omega is negative here 
+  }
+  else if (dir == 'R'){
+    v_out = v_in - omega*0.2775; //omega is positive
+  }
+  return v_out;
+
 }
 
 double e_now(double v, double v_desired) {
